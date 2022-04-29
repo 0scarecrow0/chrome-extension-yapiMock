@@ -1,0 +1,30 @@
+{
+  "name": "YapiMock",
+  "version": "1.0.0",
+  "author": "scarecrow",
+  "description": "yapiMock代理工具",
+  "manifest_version": 3,
+  "host_permissions": [
+    "*://127.0.0.1:*/"
+  ],
+  "action": {
+    "default_icon": {
+      "16": "images/LOGO-HEAD.png",
+      "32": "images/LOGO-HEAD.png",
+      "48": "images/LOGO-HEAD.png",
+      "128": "images/LOGO-HEAD.png"
+    },
+    "default_title": "yapiMock代理工具",
+    "default_popup": "default_popup/index.html"
+  },
+  "permissions": ["activeTab", "scripting","cookies","storage"],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "icons": {
+    "16": "images/LOGO.png",
+    "32": "images/LOGO.png",
+    "48": "images/LOGO.png",
+    "128": "images/LOGO.png"
+  }
+}
