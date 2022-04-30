@@ -1,0 +1,13 @@
+[
+  {
+    "id": 1,
+    "priority": 1,
+    "action": {
+      "type": "redirect",
+      "redirect": {
+        "regexSubstitution": "devapi.linkmcn.cn/\\1"
+      }
+    },
+    "condition": { "regexFilter": "testapi.linkmcn.cn/(.*)", "resourceTypes": ["xmlhttprequest"] }
+  }
+]

@@ -18,6 +18,9 @@ module.exports = {
     parser: '@typescript-eslint/parser',
     sourceType: 'module',
   },
+  globals: {
+    chrome: 'readonly',
+  },
   plugins: [
     'vue',
     '@typescript-eslint',
@@ -46,6 +49,7 @@ module.exports = {
     '@typescript-eslint/no-explicit-any': 0,
     '@typescript-eslint/no-empty-function': 0,
     'import/no-extraneous-dependencies': 0,
+    'no-restricted-syntax': 0,
     'spaced-comment': 0,
     'valid-jsdoc': 0,
     '@typescript-eslint/member-delimiter-style': 0,

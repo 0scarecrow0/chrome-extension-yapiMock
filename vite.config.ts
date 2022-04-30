@@ -7,9 +7,11 @@ const { resolve } = require('path');
 export default defineConfig({
   // 静态资源基础路径 base: './' || '',
   base: process.env.NODE_ENV === 'production' ? './' : '/',
-  alias: {
-    // 配置目录别名
-    '@': resolve(__dirname, 'src'),
+  resolve: {
+    alias: {
+      // 配置目录别名
+      '@': resolve(__dirname, 'src'),
+    },
   },
   plugins: [
     vue(),
@@ -19,6 +21,10 @@ export default defineConfig({
       targets: [
         {
           src: 'manifest.json',
+          dest: 'dist',
+        },
+        {
+          src: 'rules.json',
           dest: 'dist',
         },
         {
