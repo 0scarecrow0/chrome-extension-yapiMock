@@ -1,17 +1,3 @@
-// const rule2 = {
-//   conditions: [
-//     // @ts-ignore
-//     new chrome.declarativeWebRequest.RequestMatcher({ url: { hostSuffix: 'https://api.linkmcn.cn/linkmcn-task/api/public/tbk/service/webList' } }),
-//     // @ts-ignore
-//     new chrome.declarativeWebRequest.RequestMatcher({ url: { hostSuffix: 'https://api.linkmcn.cn/linkmcn-task/api/public/fullorg/service/getRecommendList' } })
-//   ],
-//   actions: [
-//     // @ts-ignore
-//     new chrome.declarativeWebRequest.CancelRequest()
-//   ]
-// };
-// chrome.declarativeWebRequest.onRequest.addRules([rule2]);
-
 chrome.declarativeNetRequest.getDynamicRules((rules) => {
   console.log(rules, '动态规则集合');
 });
@@ -68,3 +54,31 @@ for (const [key, { id, yapiProjectId }] of proxyList) {
 // }, () => {
 //   console.log('添加规则成功');
 // });
+
+/**
+ * 统一代理规则
+ *
+ * 线上网站代理：点击路由前面的锁，网站设置 ——> 允许不安全内容
+*/
+// {
+//   "id": 1,
+//   "priority": 1,
+//   "action": {
+//     "type": "redirect",
+//     "redirect": {
+//       "regexSubstitution": "http://10.10.0.121:3000/mock/46/\\1"
+//     }
+//   },
+//   "condition": { "regexFilter": "https://api.linkmcn.cn/(.*)", "resourceTypes": ["xmlhttprequest"] }
+// }
+
+// chrome.devtools.network.onRequestFinished.addListener(
+//   (request) => {
+//     console.log(request, '网页请求');
+//     // if (request.response.bodySize > 40 * 1024) {
+//     //   chrome.devtools.inspectedWindow.eval(
+//     //     `console.log("Large image: " + unescape("${escape(request.request.url)}"))`
+//     //   );
+//     // }
+//   }
+// );

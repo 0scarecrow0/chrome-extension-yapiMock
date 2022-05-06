@@ -1,12 +1,15 @@
 import { defineConfig } from 'vite';
 import vue from '@vitejs/plugin-vue';
 import copy from 'rollup-plugin-copy';
+import AutoImport from 'unplugin-auto-import/vite';
+import Components from 'unplugin-vue-components/vite';
+import { ElementPlusResolver } from 'unplugin-vue-components/resolvers';
 
 const { resolve } = require('path');
 
 export default defineConfig({
   // 静态资源基础路径 base: './' || '',
-  base: process.env.NODE_ENV === 'production' ? './' : '/',
+  base: '/',
   resolve: {
     alias: {
       // 配置目录别名
@@ -15,6 +18,12 @@ export default defineConfig({
   },
   plugins: [
     vue(),
+    AutoImport({
+      resolvers: [ElementPlusResolver()],
+    }),
+    Components({
+      resolvers: [ElementPlusResolver()],
+    }),
     copy({
       verbose: true,
       hook: 'writeBundle',
@@ -31,6 +40,13 @@ export default defineConfig({
           src: 'images',
           dest: 'dist',
         },
+        /**
+         * 开发者工具菜单
+        */
+        {
+          src: 'src/devtools_page',
+          dest: 'dist',
+        },
       ],
     }),
   ],
@@ -38,6 +54,10 @@ export default defineConfig({
     sourcemap: false,
     rollupOptions: {
       input: {
+        /**
+         * 点击插件图标出现默认页面
+        */
+        devtools_panel: resolve(__dirname, 'devtools_panel/index.html'),
         /**
          * 点击插件图标出现默认页面
         */

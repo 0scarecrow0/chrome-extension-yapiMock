@@ -8,9 +8,9 @@ module.exports = {
     node: true,
   },
   extends: [
-    'plugin:vue/essential',
+    'plugin:vue/vue3-essential',
     'airbnb-base',
-    'plugin:vue/vue3-recommended',
+    'plugin:vue/vue3-recommended'
   ],
   parser: 'vue-eslint-parser',
   parserOptions: {
@@ -49,6 +49,10 @@ module.exports = {
     '@typescript-eslint/no-explicit-any': 0,
     '@typescript-eslint/no-empty-function': 0,
     'import/no-extraneous-dependencies': 0,
+    'import/no-unresolved': 0,
+    'import/prefer-default-export': 0,
+    'import/extensions': 0,
+    'no-undef': 0,
     'no-restricted-syntax': 0,
     'spaced-comment': 0,
     'valid-jsdoc': 0,

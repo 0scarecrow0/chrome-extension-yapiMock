@@ -5,9 +5,12 @@
     "action": {
       "type": "redirect",
       "redirect": {
-        "regexSubstitution": "devapi.linkmcn.cn/\\1"
+        "regexSubstitution": "http://10.10.0.121:3000/mock/46/\\1"
       }
     },
-    "condition": { "regexFilter": "testapi.linkmcn.cn/(.*)", "resourceTypes": ["xmlhttprequest"] }
+    "condition": {
+      "regexFilter": "https://api.linkmcn.cn/(.*)",
+      "resourceTypes": ["xmlhttprequest"]
+    }
   }
 ]

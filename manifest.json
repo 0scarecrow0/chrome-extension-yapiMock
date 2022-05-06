@@ -28,6 +28,7 @@
     "default_title": "yapiMock代理工具",
     "default_popup": "index.html"
   },
+  "devtools_page": "devtools_page/index.html",
   "permissions": [
     "activeTab",
     "scripting",
