@@ -1,0 +1,10 @@
+@mixin ellipsis($line:2) {
+	-webkit-line-clamp: $line;
+  text-overflow: -o-ellipsis-lastline;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  word-wrap: break-word;
+  word-break: break-all;
+}

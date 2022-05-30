@@ -17,6 +17,9 @@ module.exports = {
     ecmaVersion: 'latest',
     parser: '@typescript-eslint/parser',
     sourceType: 'module',
+    ecmaFeatures: {
+      jsx: true
+    }
   },
   globals: {
     chrome: 'readonly',
@@ -63,5 +66,8 @@ module.exports = {
     'space-infix-ops': 2,
     'space-unary-ops': 2,
     'new-cap': 'off',
+    'max-len': ['error', { code: 200 }],
+    'max-classes-per-file': 0,
+    'no-useless-escape': 0
   },
 };

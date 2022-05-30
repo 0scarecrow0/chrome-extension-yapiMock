@@ -1,3 +1,12 @@
+/*
+ * @Author: scarecrow scarecrow.wilderness@gmail.com
+ * @Date: 2022-05-28 21:27:26
+ * @LastEditors: Please set LastEditors
+ * @LastEditTime: 2022-05-30 23:10:30
+ * @FilePath: /chrome-extension-yapiMock/utils/index.ts
+ * @Description: 这是默认设置,请设置`customMade`, 打开koroFileHeader查看配置 进行设置: https://github.com/OBKoro1/koro1FileHeader/wiki/%E9%85%8D%E7%BD%AE
+ */
+import dayjs from 'dayjs';
 import type { INetworkType } from '../types/NetworkTypes';
 
 export function isJSON(str:string) {
@@ -28,23 +37,23 @@ export const RequestConversion = (Request:chrome.devtools.network.Request):INetw
       reqData.other_data = Request.request.postData.text;
     }
   }
+  const { hostname, origin, pathname } = new URL(Request.request.url);
+  const yapi = Request.request.headers.find(({ name }) => name === 'yapi');
   return {
-    /** 请求资源类型 */
+    hostname,
+    origin,
+    pathname,
     // eslint-disable-next-line no-underscore-dangle
     resourceType: Request._resourceType as string,
-    /** 开始时间 */
-    startedDateTime: new Date(Request.startedDateTime),
-    /** url */
+    startedDateTime: dayjs(Request.startedDateTime).format('YYYY-MM-DD HH:mm:ss'),
     url: Request.request.url,
-    /** method */
     method: Request.request.method,
-    /** Cookies */
     cookies: Request.request.cookies,
-    /** headers */
     headers: Request.request.headers,
-    /** 请求数据 */
     reqData,
-    /** 响应状态 */
-    resStatus: Request.response.status
+    yapi: yapi?.value ? Number(yapi) : 0,
+    resStatus: Request.response.status,
+    isMock: !!yapi?.value,
+    mockStatus: false
   };
 };

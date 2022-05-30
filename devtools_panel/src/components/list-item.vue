@@ -4,46 +4,65 @@
       'network_item':true,
       'network_item_active':detailsIsShow
     }"
-    @click="detailsIsShow=!detailsIsShow"
   >
     <div class="header">
-      <!-- method 请求方式 -->
-      <el-tag
-        :type="data.method==='POST'?'success':'warning'"
-        effect="dark"
+      <div
+        class="header-left"
+        @click="detailsIsShow=!detailsIsShow"
       >
-        {{ data.method }}
-      </el-tag>
-      <!-- url -->
-      <p>{{ urlLasterStr(data.url) }}</p>
+        <!-- method 请求方式 -->
+        <el-tag
+          :type="itemObj?.method==='POST'?'success':'warning'"
+          effect="dark"
+          class="method"
+        >
+          {{ itemObj?.method }}
+        </el-tag>
+        <!-- url -->
+        <p class="url">
+          {{ itemObj?.url && urlLasterStr(itemObj.url) }}
+        </p>
+      </div>
+      <div class="header-right">
+        <div
+          v-if="itemObj?.isMock"
+          class="switchBox"
+        >
+          <span class="text">开启MOCK</span>
+          <el-switch
+            v-model="itemObj.mockStatus"
+            inline-prompt
+            active-color="#13ce66"
+            inactive-color="#ff4949"
+            active-text="Y"
+            inactive-text="N"
+            @change="switchChange"
+          />
+        </div>
+      </div>
     </div>
     <transition name="el-zoom-in-top">
       <el-descriptions
         v-show="detailsIsShow"
-        title="垂直带边框列表"
+        :title="itemObj?.url"
         direction="vertical"
         :column="4"
         border
       >
-        <el-descriptions-item label="用户名">
-          kooriookami
+        <el-descriptions-item label="请求方式">
+          {{ itemObj?.method }}
         </el-descriptions-item>
-        <el-descriptions-item label="手机号">
-          18100000000
+        <el-descriptions-item label="资源类型">
+          {{ itemObj?.resourceType }}
+        </el-descriptions-item>
+        <el-descriptions-item label="开始时间">
+          {{ itemObj?.startedDateTime }}
         </el-descriptions-item>
         <el-descriptions-item
-          label="居住地"
+          label="响应状态"
           :span="2"
         >
-          苏州市
-        </el-descriptions-item>
-        <el-descriptions-item label="备注">
-          <el-tag size="small">
-            学校
-          </el-tag>
-        </el-descriptions-item>
-        <el-descriptions-item label="联系地址">
-          江苏省苏州市吴中区吴中大道 1188 号
+          {{ itemObj?.resStatus }}
         </el-descriptions-item>
       </el-descriptions>
     </transition>
@@ -51,12 +70,29 @@
 </template>
 
 <script lang="ts" setup>
-import { ref } from 'vue';
-import type { INetworkType } from '../types/NetworkTypes';
-import { urlLasterStr } from '../utils/regexp';
+import { cloneDeep } from 'lodash';
+import { Ref, ref, watch } from 'vue';
+import type { INetworkType } from '../../../types/NetworkTypes';
+import { urlLasterStr } from '../../../utils/regexp';
 
 const detailsIsShow = ref(false);
 const props = defineProps<{data:INetworkType}>();
+const emit = defineEmits<{(e: 'switchChange', flag: boolean): void
+}>();
+
+const itemObj:Ref<INetworkType | null> = ref(null);
+
+watch(
+  () => props.data,
+  (newProps) => {
+    itemObj.value = cloneDeep(newProps);
+  },
+  { immediate: true }
+);
+
+const switchChange = (val:string | number | boolean) => {
+  if (typeof val === 'boolean') emit('switchChange', val);
+};
 
 </script>
 
@@ -69,6 +105,26 @@ const props = defineProps<{data:INetworkType}>();
       display: flex;
       align-items: center;
       cursor: pointer;
+      justify-content: space-between;
+      &-left{
+        display: flex;
+        align-items: center;
+      }
+      &-right{
+        .switchBox{
+          display: flex;
+          align-items: center;
+          .text{
+            margin-right: 8px;
+          }
+        }
+      }
+    }
+    .method{
+      margin-right: 8px;
+    }
+    .url{
+      @include ellipsis(1);
     }
   }
   .network_item_active{

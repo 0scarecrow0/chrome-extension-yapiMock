@@ -4,6 +4,8 @@ import copy from 'rollup-plugin-copy';
 import AutoImport from 'unplugin-auto-import/vite';
 import Components from 'unplugin-vue-components/vite';
 import { ElementPlusResolver } from 'unplugin-vue-components/resolvers';
+import vueJsx from '@vitejs/plugin-vue-jsx';
+import ElementPlus from 'unplugin-element-plus/vite';
 
 const { resolve } = require('path');
 
@@ -16,8 +18,17 @@ export default defineConfig({
       '@': resolve(__dirname, 'src'),
     },
   },
+  css: {
+    preprocessorOptions: {
+      scss: {
+        additionalData: '@import "/style/mixins.scss";'
+      },
+    },
+  },
   plugins: [
     vue(),
+    vueJsx(),
+    ElementPlus(),
     AutoImport({
       resolvers: [ElementPlusResolver()],
     }),
