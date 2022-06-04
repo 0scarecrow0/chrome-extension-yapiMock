@@ -36,7 +36,7 @@
             inactive-color="#ff4949"
             active-text="Y"
             inactive-text="N"
-            @change="switchChange"
+            @change="switchChange(itemObj!)"
           />
         </div>
       </div>
@@ -77,7 +77,7 @@ import { urlLasterStr } from '../../../utils/regexp';
 
 const detailsIsShow = ref(false);
 const props = defineProps<{data:INetworkType}>();
-const emit = defineEmits<{(e: 'switchChange', flag: boolean): void
+const emit = defineEmits<{(e: 'switchChange', item: INetworkType): void
 }>();
 
 const itemObj:Ref<INetworkType | null> = ref(null);
@@ -90,8 +90,8 @@ watch(
   { immediate: true }
 );
 
-const switchChange = (val:string | number | boolean) => {
-  if (typeof val === 'boolean') emit('switchChange', val);
+const switchChange = (itemObj:INetworkType) => {
+  emit('switchChange', itemObj);
 };
 
 </script>

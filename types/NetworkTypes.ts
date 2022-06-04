@@ -25,9 +25,13 @@ interface INetworkType {
   yapi:number
 }
 
-type IMockRulesList = Map<string, {id: number, yapiProjectId: number, mockStatus:boolean}>
+type IMockRules = {
+  [key:string]:{id: number, yapiProjectId: number, mockStatus:boolean}
+}
+type IPage = 'devtools_page' | 'default_popup_page' | 'popup_page' | 'background_page' | 'content_page' | 'inject_page'
 
 export type {
   INetworkType,
-  IMockRulesList
+  IMockRules,
+  IPage
 };

@@ -1,132 +1,151 @@
-import { IMockRulesList } from '../../types/NetworkTypes';
+import { IMockRules, INetworkType, IPage } from '../../types/NetworkTypes';
+
+// chrome.declarativeNetRequest.getEnabledRulesets((rules) => {
+//   console.log(rules, '静态规则集合');
+// });
+
+// chrome.declarativeNetRequest.getSessionRules((rules) => {
+//   console.log(rules, '当前会话范围规则集');
+// });
+
+// chrome.storage.sync.get(['mock_rules'], (result) => {
+//   MockRules = result as IMockRules;
+// });
+
+// chrome.declarativeNetRequest.getDynamicRules((rules) => {
+//   console.log(rules, '动态规则集合');
+// });
+
+/**
+ * @description: 更新规则
+ * @param {*} rulesList 规则list
+ * @param {*} dynamicRules 生效的规则
+ * @return {*} addRules 添加的规则
+ * @return {*} removeRuleIds 删除的规则
+ */
+function rulesChange(rulesList:IMockRules, dynamicRules:chrome.declarativeNetRequest.Rule[]) {
+  const addRules:chrome.declarativeNetRequest.UpdateRuleOptions['addRules'] = [];
+  const removeRuleIds:chrome.declarativeNetRequest.UpdateRuleOptions['removeRuleIds'] = [];
+  /** 将不存在 rulesList 中的已生效规则删除 */
+  removeRuleIds.push(...dynamicRules.filter((k) => !Object.values(rulesList).find((el) => el.id === k.id)).map((v) => v.id));
+  Object.keys(rulesList).forEach((key) => {
+    /** 当前规则是否生效 */
+    const isDynamic = dynamicRules.find((el) => el.id === rulesList[key].id);
+    // 如果存储的规则中 mock 功能开启，且已生效规则中不存在，则添加至 addRules
+    if (rulesList[key].mockStatus && !isDynamic) {
+      addRules.push({
+        /** 规则唯一Id，必须为数字 */
+        id: rulesList[key].id,
+        /** 规则优先。默认为 1 */
+        priority: 1,
+        /** 触发此规则的条件 */
+        condition: {
+          urlFilter: key,
+          resourceTypes: ['xmlhttprequest' as chrome.declarativeNetRequest.ResourceType]
+        },
+        /** 满足触发条件执行的操作 */
+        action: {
+          type: 'redirect' as chrome.declarativeNetRequest.RuleActionType,
+          redirect: {
+            transform: {
+              scheme: 'http',
+              host: '10.10.0.121',
+              port: '3000',
+              path: `mock/${rulesList[key].yapiProjectId}${key}`
+            }
+          }
+        }
+      });
+    }
+    // 如果存储的规则中 mock 功能关闭，且生效规则中存在，表示删除规则
+    if (!rulesList[key].mockStatus && isDynamic) {
+      removeRuleIds.push(isDynamic.id);
+    }
+  });
+  return { addRules, removeRuleIds };
+}
+let MockRules:IMockRules = {};
+async function rulesUpdate() {
+  /** 获取已经存储的规则 */
+  const store = await chrome.storage.sync.get(['mock_rules']);
+  MockRules = store?.mock_rules as unknown as IMockRules || {};
+  console.log(MockRules, 'MockRules');
+  /** 获取动态规则集合 */
+  const rules = await chrome.declarativeNetRequest.getDynamicRules();
+  console.log(rules, '动态规则集合');
+  chrome.declarativeNetRequest.updateDynamicRules(rulesChange(MockRules, rules));
+  const rules2 = await chrome.declarativeNetRequest.getDynamicRules();
+  console.log(rules2, '动态规则集合2');
+}
+
+rulesUpdate();
 
 /** chrome 长连接 接收 */
 export class ChromeReceiveConnect {
   /** 此页面 code */
-  private local: string;
+  private local: IPage;
 
   receiveName: string;
 
   receivePort: chrome.runtime.Port | null = null;
 
-  onMessageList:((response:any)=>void)[] = [];
-
-  sendMessageList:((postMessage:chrome.runtime.Port['postMessage'])=>void)[] = [];
-
-  constructor(receiveName: string, local: string) {
+  constructor(receiveName: string, local: IPage) {
     this.receiveName = receiveName;
     this.local = local;
-    this.createReceive();
   }
 
   /** 建立连接 */
   createReceive() {
     chrome.runtime.onConnect.addListener((port) => {
-      console.log(port, 'background');
       if (port.name !== this.receiveName) return;
-
-      this.receivePort = port;
-
-      if (this.sendMessageList.length) {
-        this.sendMessageList.forEach((fn) => fn(postMessage));
-      }
 
       port.onMessage.addListener((response) => {
         if (response.to !== this.local) return;
-        if (this.onMessageList.length) {
-          this.onMessageList.forEach((fn) => fn(response));
+        switch (response.action) {
+          case 'GET_RULES':
+            this.rulesPostMsg(port);
+            break;
+          case 'CHANGE_RULES':
+            console.log(response.data, 'changeRules');
+            ChromeReceiveConnect.changeRules(response.data as INetworkType);
+            this.rulesPostMsg(port);
+            break;
+          default:
+            break;
         }
       });
     });
   }
 
-  // /**  发送消息 */
-  sendMessage(action: string, to: string, data = {}) {
-    /** 当未连接时，将事件添加至队列中，连接后触发 */
-    if (!this.receivePort) {
-      this.sendMessageList.push((postMessage) => {
-        postMessage({
-          action, to, data, from: this.local
-        });
-      });
-      return;
-    }
-    /** 已连接时直接发送 */
-    this.receivePort?.postMessage({
-      action, to, data, from: this.local
+  private rulesPostMsg(port: chrome.runtime.Port) {
+    port.postMessage({
+      action: 'RULES',
+      to: 'devtools_page',
+      from: this.local,
+      data: MockRules
     });
   }
 
-  // /** 接收消息 */
-  onMessage(callback: (response: any) => void) {
-    if (!this.receivePort) {
-      this.onMessageList.push((res) => callback(res));
-      return;
+  static async changeRules(val:INetworkType) {
+    /** 如果已经 存在该规则 */
+    if (val.pathname in MockRules) {
+      MockRules[val.pathname] = {
+        ...MockRules[val.pathname],
+        mockStatus: val.mockStatus,
+        yapiProjectId: val.yapi
+      };
+    }else{
+      MockRules[val.pathname] = {
+        id: Object.keys(MockRules).length + 50,
+        mockStatus: val.mockStatus,
+        yapiProjectId: val.yapi
+      };
     }
-    this.receivePort?.onMessage.addListener((response) => {
-      if (response.to === this.local) callback(response);
-    });
+    /** 规则改变时，更新存储中的数据 */
+    await chrome.storage.sync.set({ mock_rules: MockRules });
+    /** 更新规则 */
+    rulesUpdate();
   }
 }
-
-chrome.declarativeNetRequest.getDynamicRules((rules) => {
-  console.log(rules, '动态规则集合');
-});
-
-chrome.declarativeNetRequest.getEnabledRulesets((rules) => {
-  console.log(rules, '静态规则集合');
-});
-
-chrome.declarativeNetRequest.getSessionRules((rules) => {
-  console.log(rules, '当前会话范围规则集');
-});
-
-const proxyList:IMockRulesList = new Map([
-  ['/linkmcn-common/api/public/helpCenter/footerSearch.do', { id: 11, yapiProjectId: 46, mockStatus: false }],
-  ['/linkmcn-common/api/public/website/searchCarousel.do', { id: 22, yapiProjectId: 46, mockStatus: false }],
-]);
-
-const rulesArr:chrome.declarativeNetRequest.Rule[] = [];
-for (const [key, { id, yapiProjectId }] of proxyList) {
-  const strReg = `.*${key}.*`;
-  chrome.declarativeNetRequest.isRegexSupported({
-    regex: new RegExp(strReg).toString()
-  }, (result) => {
-    console.log(result, '是否满足');
-  });
-  console.log(new RegExp(strReg).toString());
-  const obj:chrome.declarativeNetRequest.Rule = {
-    /** 规则唯一Id，必须为数字 */
-    id,
-    priority: 1,
-    /** 触发此规则的条件 */
-    condition: {
-      urlFilter: key,
-      resourceTypes: ['xmlhttprequest'] as chrome.declarativeNetRequest.ResourceType[]
-    },
-    /** 满足触发条件执行的操作 */
-    action: {
-      type: 'redirect' as chrome.declarativeNetRequest.RuleActionType,
-      redirect: {
-        transform: {
-          scheme: 'http',
-          host: '10.10.0.121',
-          port: '3000',
-          path: `mock/${yapiProjectId}${key}`
-        }
-      }
-    },
-  };
-  rulesArr.push(obj);
-}
-
-/** 获取已经存储的规则 */
-chrome.storage.sync.get(['proxy_list'], (result) => {
-  console.log(`Value currently is ${result.proxy_list}`);
-});
-
-/** 来自于devtools的通信 */
 const devtoolsConnect = new ChromeReceiveConnect('DEVTOOLS_CONNECT_BACKGROUND', 'background_page');
-devtoolsConnect.onMessage((response) => {
-  console.log(response, 'DEVTOOLS_CONNECT_BACKGROUND');
-});
+devtoolsConnect.createReceive();
