@@ -1,4 +1,6 @@
-import { IMockRules, INetworkType, IPage } from '../../types/NetworkTypes';
+import {
+  IChangeRules, IMockRules, INetworkType, IPage
+} from '../../types/NetworkTypes';
 
 // chrome.declarativeNetRequest.getEnabledRulesets((rules) => {
 //   console.log(rules, '静态规则集合');
@@ -95,38 +97,29 @@ export class ChromeReceiveConnect {
   }
 
   /** 建立连接 */
-  createReceive() {
+  createReceive(cb:(response:any, port: chrome.runtime.Port)=>void) {
     chrome.runtime.onConnect.addListener((port) => {
       if (port.name !== this.receiveName) return;
-
+      this.receivePort = port;
       port.onMessage.addListener((response) => {
         if (response.to !== this.local) return;
-        switch (response.action) {
-          case 'GET_RULES':
-            this.rulesPostMsg(port);
-            break;
-          case 'CHANGE_RULES':
-            console.log(response.data, 'changeRules');
-            ChromeReceiveConnect.changeRules(response.data as INetworkType);
-            this.rulesPostMsg(port);
-            break;
-          default:
-            break;
-        }
+        cb(response, port);
       });
     });
   }
 
-  private rulesPostMsg(port: chrome.runtime.Port) {
+  /** 发送现有规则 */
+  rulesPostMsg(port: chrome.runtime.Port, to:IPage) {
     port.postMessage({
       action: 'RULES',
-      to: 'devtools_page',
+      to,
       from: this.local,
       data: MockRules
     });
   }
 
-  static async changeRules(val:INetworkType) {
+  /** 代理开关改变触发 */
+  static async changeRules(val:IChangeRules) {
     /** 如果已经 存在该规则 */
     if (val.pathname in MockRules) {
       MockRules[val.pathname] = {
@@ -146,6 +139,58 @@ export class ChromeReceiveConnect {
     /** 更新规则 */
     rulesUpdate();
   }
+
+  /** 删除代理规则 */
+  static async deleteRules(key:string) {
+    if (MockRules[key]) {
+      delete MockRules[key];
+      /** 规则改变时，更新存储中的数据 */
+      await chrome.storage.sync.set({ mock_rules: MockRules });
+      /** 更新规则 */
+      rulesUpdate();
+    }
+  }
 }
+
+/** 接收DEVTOOLS发送的消息 */
 const devtoolsConnect = new ChromeReceiveConnect('DEVTOOLS_CONNECT_BACKGROUND', 'background_page');
-devtoolsConnect.createReceive();
+/** 接收POPUP发送的消息 */
+const popupConnect = new ChromeReceiveConnect('POPUP_CONNECT_BACKGROUND', 'background_page');
+
+devtoolsConnect.createReceive((response, port) => {
+  switch (response.action) {
+    case 'GET_RULES':
+      devtoolsConnect.rulesPostMsg(port, 'devtools_page');
+      break;
+    case 'CHANGE_RULES':
+      ChromeReceiveConnect.changeRules(response.data as IChangeRules);
+      devtoolsConnect.rulesPostMsg(port, 'devtools_page');
+      /** 如果popup页面已连接，通知popup页面更新规则 */
+      popupConnect.receivePort && popupConnect.rulesPostMsg(popupConnect.receivePort, 'popup_page');
+      break;
+    default:
+      break;
+  }
+});
+
+popupConnect.createReceive((response, port) => {
+  switch (response.action) {
+    case 'GET_RULES':
+      popupConnect.rulesPostMsg(port, 'popup_page');
+      break;
+    case 'CHANGE_RULES':
+      ChromeReceiveConnect.changeRules(response.data as IChangeRules);
+      popupConnect.rulesPostMsg(port, 'popup_page');
+      /** 如果devtools页面已连接，通知popup页面更新规则 */
+      devtoolsConnect.receivePort && devtoolsConnect.rulesPostMsg(devtoolsConnect.receivePort, 'devtools_page');
+      break;
+    case 'DELETE_RULES':
+      ChromeReceiveConnect.deleteRules(response.data as string);
+      popupConnect.rulesPostMsg(port, 'popup_page');
+      /** 如果devtools页面已连接，通知popup页面更新规则 */
+      devtoolsConnect.receivePort && devtoolsConnect.rulesPostMsg(devtoolsConnect.receivePort, 'devtools_page');
+      break;
+    default:
+      break;
+  }
+});
